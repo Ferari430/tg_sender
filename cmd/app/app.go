@@ -15,7 +15,8 @@ import (
 )
 
 type App struct {
-	Bot *telegramBot.Bot
+	Bot    *telegramBot.Bot
+	Sender *sender.Sender
 }
 
 func NewApp() (*App, error) {
@@ -25,36 +26,48 @@ func NewApp() (*App, error) {
 		return nil, err
 	}
 
-	tgbot, err := tgbotapi.NewBotAPI(cfg.BotConfig.Token)
+	tgBot, err := tgbotapi.NewBotAPI(cfg.BotConfig.Token)
 
 	if err != nil {
 		return nil, err
 	}
 
-	presenter := out.NewTgPresenter(tgbot)
+	presenter := out.NewTgPresenter(tgBot)
 
-	uploader := out.NewUploader(tgbot)
+	uploader := out.NewUploader(tgBot)
 
 	t := time.NewTicker(cfg.TickerConfig.TickTime)
-	cron := cron.NewCron(uploader, t)
-	_ = cron
 
-	d := out.NewDownloader(*tgbot, cfg.DownloaderConfig)
+	send := sender.NewSender(uploader, t)
+
+	d := out.NewDownloader(*tgBot, cfg.DownloaderConfig)
 	s := fileservice.NewFileService(d)
 	h := dochandler.NewDocHandler(s, presenter)
 	u := userhandler.NewUserHandler()
 
 	router := telegramBot.NewRouter(u, h)
-	bot, err := telegramBot.NewTgBot(tgbot, router)
+	bot, err := telegramBot.NewTgBot(tgBot, router)
 	if err != nil {
 
 		return nil, err
 	}
 
-	return &App{Bot: bot}, nil
+	return &App{Bot: bot,
+		Sender: send,
+	}, nil
 }
 
 func (a *App) RunApp(_ context.Context) {
 
-	a.Bot.Start()
+	go a.Bot.Start()
+	go a.Sender.Start()
+	select {}
+}
+
+func initSender() {
+
+}
+
+func initTgBot() {
+
 }

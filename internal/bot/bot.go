@@ -32,7 +32,7 @@ func NewTgBot(tgBot *tgbotapi.BotAPI, r *Router) (*Bot, error) {
 	}, nil
 }
 
-func (b *Bot) Start() error {
+func (b *Bot) Start() {
 	updateConfig := tgbotapi.NewUpdate(0)
 	updateConfig.Timeout = 60
 	updates := b.tgBot.GetUpdatesChan(updateConfig)
@@ -43,8 +43,6 @@ func (b *Bot) Start() error {
 	for update := range updates {
 		b.HandleMessage(update)
 	}
-
-	return nil
 
 }
 
@@ -63,11 +61,17 @@ func (b *Bot) HandleMessage(u tgbotapi.Update) {
 
 	}
 
-	if u.Message.Document != nil {
-		fname := u.Message.Document.FileName
-		log.Println("filename:", fname)
-		b.router.docHandler.HandleDoc(u.Message)
+	if u.Message.IsCommand() {
 
+	}
+
+	if u.Message.Document != nil {
+		fName := u.Message.Document.FileName
+		log.Println("filename:", fName)
+		err := b.router.docHandler.HandleDoc(u.Message)
+		if err != nil {
+			log.Println(err)
+		}
 	}
 
 }

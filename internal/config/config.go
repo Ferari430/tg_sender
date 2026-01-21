@@ -27,14 +27,15 @@ type DownloaderConfig struct {
 }
 
 func InitConfig() (*Config, error) {
-	err := godotenv.Load(`B:\programmin-20260114T065921Z-1-001\programmin\tg_sender\.env`)
+	//path := `B:\programmin-20260114T065921Z-1-001\programmin\tg_sender\data`
+	pathL := `/home/user/programmin/tg_sender/.env`
+	pathD := `/home/user/programmin/tg_sender/data`
+	err := godotenv.Load(pathL)
 	if err != nil {
 		return nil, err
 	}
 
 	//todo: delete hardcode
-	path := `B:\programmin-20260114T065921Z-1-001\programmin\tg_sender\data`
-
 	t := os.Getenv("TIME")
 	a, err := strconv.ParseInt(t, 10, 64)
 	if err != nil {
@@ -42,7 +43,7 @@ func InitConfig() (*Config, error) {
 	}
 	dur := time.Duration(a) * time.Second
 
-	return &Config{BotConfig: BotConfig{Token: os.Getenv("TOKEN")}, DownloaderConfig: &DownloaderConfig{RootDir: path},
+	return &Config{BotConfig: BotConfig{Token: os.Getenv("TOKEN")}, DownloaderConfig: &DownloaderConfig{RootDir: pathD},
 
 		TickerConfig: TickerConfig{
 			TickTime: dur,

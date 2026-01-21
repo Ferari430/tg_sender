@@ -10,14 +10,14 @@ import (
 
 type InMemory struct {
 	mu    sync.Mutex
-	users map[int64]models.User // ключ — ChatID
-	files map[string]models.File
+	users map[int64]*models.User
+	files map[string]*models.File
 }
 
 func NewInMemory() *InMemory {
 	return &InMemory{
-		users: make(map[int64]models.User),
-		files: make(map[string]models.File),
+		users: make(map[int64]*models.User),
+		files: make(map[string]*models.File),
 	}
 }
 
@@ -29,7 +29,7 @@ func (im *InMemory) SaveUser(u models.User) error {
 		u.CreatedAt = time.Now()
 	}
 	u.LastSeen = time.Now()
-	im.users[u.ChatID] = u
+	im.users[u.ChatID] = &u
 
 	log.Println("Saved user", u.ChatID)
 	return nil
@@ -43,7 +43,7 @@ func (im *InMemory) GetUserById(chatID int64) (*models.User, bool) {
 	if !exists {
 		return nil, false
 	}
-	return &u, true
+	return u, true
 }
 
 func (im *InMemory) Exists(chatID int64) bool {
@@ -61,19 +61,17 @@ func (im *InMemory) SaveFile(f models.File) error {
 	defer im.mu.Unlock()
 
 	if _, exists := im.files[f.ID]; exists {
-		return nil // файл уже есть
+		return nil
 	}
 
 	f.CreatedAt = time.Now()
-	im.files[f.ID] = f
+	im.files[f.ID] = &f
 	v, ok := im.users[f.OwnerID]
-	if !ok {
-		log.Println()
+	if ok {
+		v.FilesCount++
+		log.Println("количество файлов у пользователя", v.Username, "=", v.FilesCount)
 	}
 
-	v.FilesCount++
-
-	log.Println("количество файлов у пользователя", v.Username, "=", v.FilesCount)
 	log.Println("Saved file:", f.Name, "owner:", f.OwnerID)
 	return nil
 }
@@ -86,7 +84,8 @@ func (im *InMemory) GetFileByID(fileID string) (*models.File, bool) {
 	if !exists {
 		return nil, false
 	}
-	return &f, true
+
+	return f, true
 }
 
 func (im *InMemory) GetFilesByUser(chatID int64) []models.File {
@@ -96,7 +95,7 @@ func (im *InMemory) GetFilesByUser(chatID int64) []models.File {
 	var res []models.File
 	for _, f := range im.files {
 		if f.OwnerID == chatID {
-			res = append(res, f)
+			res = append(res, *f)
 		}
 	}
 	return res

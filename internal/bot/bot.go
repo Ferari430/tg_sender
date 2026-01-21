@@ -51,24 +51,25 @@ func (b *Bot) HandleMessage(u tgbotapi.Update) {
 		log.Println("message is nil")
 		return
 	}
+
 	id := u.Message.Chat.ID
-
-	if u.Message != nil {
-		log.Println("recieved message:", u.Message.Text)
-		msg := tgbotapi.NewMessage(id, "info")
-
-		b.tgBot.Send(msg)
-
-	}
-
-	if u.Message.IsCommand() {
-
-	}
 
 	if u.Message.Document != nil {
 		fName := u.Message.Document.FileName
 		log.Println("filename:", fName)
 		err := b.router.docHandler.HandleDoc(u.Message)
+		if err != nil {
+			log.Println(err)
+		}
+		return
+	}
+
+	if u.Message != nil {
+		log.Println("recieved message:", u.Message.Text)
+		msg := tgbotapi.NewMessage(id, "info")
+
+		b.router.userHandler.HandleMessage(u.Message)
+		_, err := b.tgBot.Send(msg)
 		if err != nil {
 			log.Println(err)
 		}

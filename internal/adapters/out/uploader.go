@@ -17,6 +17,7 @@ func NewUploader(b *tgbotapi.BotAPI) *Uploader {
 	return &Uploader{bot: b}
 }
 
+// отправка архива пользователю
 func (u *Uploader) UploadArchive() error {
 
 	path := `B:\data\curl.txt`
@@ -26,7 +27,14 @@ func (u *Uploader) UploadArchive() error {
 		return err
 	}
 
-	defer f.Close()
+	defer func() error {
+		if err := f.Close(); err != nil {
+			log.Printf("error closing file: %v", err)
+			return err
+		}
+		return nil
+	}()
+
 	var buf bytes.Buffer
 
 	_, err = io.Copy(&buf, f)

@@ -39,7 +39,6 @@ func (b *Bot) Start() {
 
 	log.Println("Bot started, waiting for updates...")
 
-	// Обрабатываем обновления
 	for update := range updates {
 		b.HandleMessage(update)
 	}
@@ -51,8 +50,6 @@ func (b *Bot) HandleMessage(u tgbotapi.Update) {
 		log.Println("message is nil")
 		return
 	}
-
-	id := u.Message.Chat.ID
 
 	if u.Message.Document != nil {
 		fName := u.Message.Document.FileName
@@ -66,13 +63,9 @@ func (b *Bot) HandleMessage(u tgbotapi.Update) {
 
 	if u.Message != nil {
 		log.Println("recieved message:", u.Message.Text)
-		msg := tgbotapi.NewMessage(id, "info")
 
 		b.router.userHandler.HandleMessage(u.Message)
-		_, err := b.tgBot.Send(msg)
-		if err != nil {
-			log.Println(err)
-		}
-	}
 
+		return
+	}
 }

@@ -11,13 +11,14 @@ type Presenter interface {
 	Successes(id int64, text string) error
 	Error(id int64, text string) error
 	Welcome(id int64, name string) error
-	Files(id int64, text string) error
+	Files(id int64, fileNames []string) error
+	Help(id int64) error
 }
 
 const (
 	startCommand = "start"
 	helpCommand  = "help"
-	myFiles      = "MyFiles"
+	files        = "files"
 )
 
 type UserHandler struct {
@@ -59,19 +60,36 @@ func (u *UserHandler) HandleMessage(msg *tgbotapi.Message) {
 		case helpCommand:
 			u.s.Help()
 
-		case myFiles:
-			u.s.Files()
+			err := u.P.Help(id)
+			if err != nil {
+				return
+			}
+		case files:
+			files, err := u.s.Files(id)
+			if err != nil {
+				log.Println(err)
+				err := u.P.Error(id, "Вы не загрузили ни одного файла")
+				if err != nil {
+					return
+				}
 
-			err := u.P.Files(msg.Chat.ID, msg.Text)
+				return
+			}
 
+			err = u.P.Files(msg.Chat.ID, files)
 			if err != nil {
 				log.Println(err)
 				return
 			}
 
 		default:
-			log.Println("unknown command: ", msg.Command())
+
+			log.Println("Неизвестная команда: ", msg.Command())
+			err := u.P.Error(msg.Chat.ID, "Введена неизвестная команда")
+			if err != nil {
+				log.Println(err)
+				return
+			}
 		}
 	}
-
 }

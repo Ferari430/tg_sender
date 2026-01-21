@@ -1,6 +1,7 @@
 package inMemory
 
 import (
+	"errors"
 	"log"
 	"sync"
 	"time"
@@ -46,6 +47,20 @@ func (im *InMemory) GetUserById(chatID int64) (*models.User, bool) {
 	return u, true
 }
 
+func (im *InMemory) FileNames(id int64) ([]string, error) {
+	result := make([]string, len(im.files))
+	for _, file := range im.files {
+		if file.OwnerID == id {
+			result = append(result, file.Name)
+		}
+	}
+	if len(result) == 0 {
+		return result, errors.New("not found")
+	}
+
+	return result, nil
+}
+
 func (im *InMemory) Exists(chatID int64) bool {
 	im.mu.Lock()
 	defer im.mu.Unlock()
@@ -86,6 +101,16 @@ func (im *InMemory) GetFileByID(fileID string) (*models.File, bool) {
 	}
 
 	return f, true
+}
+
+func (im *InMemory) GetFileByName(name string) bool {
+	for _, file := range im.files {
+		if file.Name == name {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (im *InMemory) GetFilesByUser(chatID int64) []models.File {

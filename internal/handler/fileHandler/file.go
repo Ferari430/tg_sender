@@ -1,11 +1,8 @@
 package dochandler
 
 import (
-	"errors"
 	"fmt"
 	"log"
-	"slices"
-	"strings"
 	"time"
 
 	fileservice "github.com/Ferari430/tg_sender/internal/service/file"
@@ -36,7 +33,6 @@ func (d *DocHandler) HandleMessage(msg string) {
 }
 
 func (d *DocHandler) HandleDoc(msg *tgbotapi.Message) error {
-	archiveExtensions := []string{"zip", "tar.gz", "tgz", "7z", "rar"}
 
 	doc := msg.Document
 	if doc == nil {
@@ -45,27 +41,26 @@ func (d *DocHandler) HandleDoc(msg *tgbotapi.Message) error {
 
 	}
 
-	parts := strings.Split(doc.FileName, ".")
-	ext := parts[len(parts)-1]
-	if !slices.Contains(archiveExtensions, ext) {
-		return errors.New("invalid file extension")
+	dto := &fileservice.DocDTO{
+		OwnerID:  msg.Chat.ID,
+		FileName: doc.FileName,
+		FileID:   doc.FileID,
+		Size:     doc.FileSize,
 	}
 
-	dto := fileservice.DocDTO{
-		OwnerID:   msg.Chat.ID,
-		FileName:  doc.FileName,
-		Extension: ext,
-		FileID:    doc.FileID,
-		Size:      doc.FileSize,
+	err := d.docService.ValidateArchive(dto)
+	if err != nil {
+		log.Println(err)
+		return err
 	}
 
-	err := d.P.Message(msg.Chat.ID, "Архив прошел проверки! Начинаю скачивание файла!")
+	err = d.P.Message(msg.Chat.ID, "Архив прошел проверки! Начинаю скачивание файла!")
 	if err != nil {
 		return err
 	}
 
 	now := time.Now()
-	err = d.docService.DownloadZip(&dto)
+	err = d.docService.DownloadZip(dto)
 	if err != nil {
 		return err
 	}

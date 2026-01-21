@@ -3,6 +3,8 @@ package fileservice
 import (
 	"errors"
 	"log"
+	"slices"
+	"strings"
 	"time"
 
 	"github.com/Ferari430/tg_sender/internal/models"
@@ -44,11 +46,24 @@ func (fs *FileService) DownloadZip(dto *DocDTO) error {
 	log.Println("File downloaded:", path)
 	dto.Path = path
 	file := DtoToFileModel(dto)
-	
+
 	err = fs.db.SaveFile(file)
 	if err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (fs *FileService) ValidateArchive(dto *DocDTO) error {
+	archiveExtensions := []string{"zip", "tar.gz", "tgz", "7z", "rar"}
+
+	parts := strings.Split(dto.FileName, ".")
+	ext := parts[len(parts)-1]
+	if !slices.Contains(archiveExtensions, ext) {
+		return errors.New("invalid file extension")
+	}
+	dto.Extension = ext
 
 	return nil
 }

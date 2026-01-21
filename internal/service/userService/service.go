@@ -10,6 +10,7 @@ type Reposiroty interface {
 	SaveUser(u models.User) error
 	GetUserById(chatID int64) (*models.User, bool)
 	Exists(chatID int64) bool
+	FileNames(id int64) ([]string, error)
 }
 
 type UserService struct {
@@ -37,8 +38,12 @@ func (us *UserService) Help() {
 }
 
 // запрос готовых файлов
-func (us *UserService) Files() {
-
+func (us *UserService) Files(id int64) ([]string, error) {
+	files, err := us.db.FileNames(id)
+	if err != nil {
+		return nil, err
+	}
+	return files, nil
 }
 
 func DtoToUserModel(d UserDTO) models.User {

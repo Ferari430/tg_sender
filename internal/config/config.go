@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"runtime"
 	"strconv"
 	"time"
 
@@ -27,10 +28,25 @@ type DownloaderConfig struct {
 }
 
 func InitConfig() (*Config, error) {
-	//path := `B:\programmin-20260114T065921Z-1-001\programmin\tg_sender\data`
-	pathL := `/home/user/programmin/tg_sender/.env`
-	pathD := `/home/user/programmin/tg_sender/data`
-	err := godotenv.Load(pathL)
+	var (
+		envPath      string
+		DownloadPath string
+	)
+
+	System := runtime.GOOS
+	switch System {
+	case "linux":
+		envPath = `/home/user/programmin/tg_sender/.env`
+		DownloadPath = `/home/user/programmin/tg_sender/data`
+
+	case "windows":
+		//todo
+		envPath = `/home/user/programmin/tg_sender/.env`
+		DownloadPath = `B:\programmin-20260114T065921Z-1-001\programmin\tg_sender\data`
+		//todo: set for windows
+	}
+
+	err := godotenv.Load(envPath)
 	if err != nil {
 		return nil, err
 	}
@@ -41,9 +57,10 @@ func InitConfig() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	dur := time.Duration(a) * time.Second
 
-	return &Config{BotConfig: BotConfig{Token: os.Getenv("TOKEN")}, DownloaderConfig: &DownloaderConfig{RootDir: pathD},
+	return &Config{BotConfig: BotConfig{Token: os.Getenv("TOKEN")}, DownloaderConfig: &DownloaderConfig{RootDir: DownloadPath},
 
 		TickerConfig: TickerConfig{
 			TickTime: dur,

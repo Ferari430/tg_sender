@@ -9,18 +9,18 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-type Uploader struct {
+type TelegramUploader struct {
 	bot *tgbotapi.BotAPI
 }
 
-func NewUploader(b *tgbotapi.BotAPI) *Uploader {
-	return &Uploader{bot: b}
+func NewTelegramUploader(b *tgbotapi.BotAPI) *TelegramUploader {
+	return &TelegramUploader{bot: b}
 }
 
 // отправка архива пользователю
-func (u *Uploader) UploadArchive() error {
+func (u *TelegramUploader) UploadDocument(path string) error {
 
-	path := `B:\data\curl.txt`
+	//path := `B:\data\curl.txt`
 
 	f, err := os.Open(path)
 	if err != nil {

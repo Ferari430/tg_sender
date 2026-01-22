@@ -19,6 +19,7 @@ type Reposiroty interface {
 	GetFileByID(fileID string) (*models.File, bool)
 	GetFilesByUser(chatID int64) []models.File
 	DeleteFile(fileID string)
+	GetFileByName(name string) bool
 }
 
 type FileService struct {
@@ -57,6 +58,7 @@ func (fs *FileService) DownloadZip(dto *DocDTO) error {
 
 func (fs *FileService) ValidateArchive(dto *DocDTO) error {
 	archiveExtensions := []string{"zip", "tar.gz", "tgz", "7z", "rar"}
+	log.Println("Validating archive:", dto.FileName)
 
 	parts := strings.Split(dto.FileName, ".")
 	ext := parts[len(parts)-1]
@@ -66,6 +68,13 @@ func (fs *FileService) ValidateArchive(dto *DocDTO) error {
 	dto.Extension = ext
 
 	return nil
+}
+
+func (fs *FileService) AlreadyExisted(dto *DocDTO) bool {
+	if ok := fs.db.GetFileByName(dto.FileName); ok {
+		return true
+	}
+	return false
 }
 
 func DtoToFileModel(d *DocDTO) models.File {

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Ferari430/tg_sender/pkg"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
@@ -36,7 +37,9 @@ func (tg *TgPresenter) Welcome(id int64, name string) error {
 }
 
 func (tg *TgPresenter) Files(id int64, fileNames []string) error {
-	m := fmt.Sprintf("Твои файлы: %s", strings.Join(fileNames, "\n "))
+
+	arr := pkg.RemoveDuplicates(fileNames)
+	m := fmt.Sprintf("Твои файлы: %s", strings.Join(arr, "\n "))
 
 	msg := tgbotapi.NewMessage(id, m)
 	_, err := tg.bot.Send(msg)
@@ -91,11 +94,11 @@ const (
 3. Если архив большой, используйте .7z для лучшего сжатия
 
 По всем вопросам обращайтесь к @Airfool`
-				
+
 	StartMessage = "Привет! 👋  \nЯ бот для работы с файлами 📦\n\nЧто я умею:\n• принимаю ZIP-архивы" +
 		"  \n• сохраняю их на сервере  " +
 		"\n• запоминаю, кто и что загрузил  " +
 		"\n\nПросто отправь ZIP-файл в этот чат.\n\n" +
 		"Доступные команды:\n" +
-		"/help — помощь  \n/myfiles — посмотреть загруженные файлы"
+		"/help — помощь  \n/files — посмотреть загруженные файлы"
 )

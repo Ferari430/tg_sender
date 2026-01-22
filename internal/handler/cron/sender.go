@@ -6,28 +6,42 @@ import (
 )
 
 type Uploader interface {
-	UploadArchive() error
+	UploadDocument(path string) error
+}
+
+type Getter interface {
+	GetRandomFilePath() (string, error)
 }
 
 type Sender struct {
 	t *time.Ticker
 	u Uploader
+	g Getter
 }
 
-func NewSender(uploader Uploader, ticker *time.Ticker) *Sender {
+func NewSender(uploader Uploader, ticker *time.Ticker, fileService Getter) *Sender {
 	return &Sender{u: uploader,
 		t: ticker,
+		g: fileService,
 	}
 }
 
 func (c *Sender) Start() {
 	for range c.t.C {
-		log.Println("отправка файла пользователю...")
-		err := c.u.UploadArchive()
+		path, err := c.g.GetRandomFilePath()
 		if err != nil {
 			log.Println(err)
-			return
+			continue
 		}
+
+		log.Println("найден файл:", path)
+		log.Println("отправка файла пользователю...")
+
+		err = c.u.UploadDocument(path)
+		if err != nil {
+			log.Println(err)
+		}
+
 		log.Println("файл успешно отправлен")
 	}
 

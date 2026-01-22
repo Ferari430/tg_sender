@@ -2,7 +2,9 @@ package inMemory
 
 import (
 	"errors"
+	"fmt"
 	"log"
+	"math/rand"
 	"sync"
 	"time"
 
@@ -132,4 +134,21 @@ func (im *InMemory) DeleteFile(fileID string) {
 
 	delete(im.files, fileID)
 	log.Println("Deleted file:", fileID)
+}
+
+func (im *InMemory) GetRandomFilePath() (string, error) {
+	if len(im.files) == 0 {
+		return "", fmt.Errorf("база данных пуста")
+	}
+
+	randomIndex := rand.Intn(len(im.files))
+	i := 0
+	for _, file := range im.files {
+		if i == randomIndex {
+			return file.Path, nil
+		}
+		i++
+	}
+
+	return "", errors.New("not found")
 }

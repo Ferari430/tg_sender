@@ -7,7 +7,7 @@ import (
 	"github.com/Ferari430/tg_sender/internal/adapters/out"
 	telegramBot "github.com/Ferari430/tg_sender/internal/bot"
 	"github.com/Ferari430/tg_sender/internal/config"
-	"github.com/Ferari430/tg_sender/internal/handler/cron"
+	sender "github.com/Ferari430/tg_sender/internal/handler/cron"
 	dochandler "github.com/Ferari430/tg_sender/internal/handler/fileHandler"
 	userhandler "github.com/Ferari430/tg_sender/internal/handler/userHandler"
 	"github.com/Ferari430/tg_sender/internal/infra/inMemory"
@@ -35,12 +35,14 @@ func NewApp() (*App, error) {
 
 	presenter := out.NewTgPresenter(tgBot)
 
-	uploader := out.NewUploader(tgBot)
+	uploader := out.NewTelegramUploader(tgBot)
 	t := time.NewTicker(cfg.TickerConfig.TickTime)
 
-	send := sender.NewSender(uploader, t)
-
 	db := inMemory.NewInMemory()
+
+	ss := fileservice.NewRandomFileService(db)
+
+	send := sender.NewSender(uploader, t, ss)
 
 	d := out.NewDownloader(*tgBot, cfg.DownloaderConfig)
 	s := fileservice.NewFileService(d, db)
@@ -64,7 +66,7 @@ func NewApp() (*App, error) {
 func (a *App) RunApp(_ context.Context) {
 
 	go a.Bot.Start()
-	//go a.Sender.Start()
+	go a.Sender.Start()
 	select {}
 }
 

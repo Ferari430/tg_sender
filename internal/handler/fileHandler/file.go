@@ -48,6 +48,15 @@ func (d *DocHandler) HandleDoc(msg *tgbotapi.Message) error {
 		Size:     doc.FileSize,
 	}
 
+	if ok := d.docService.AlreadyExisted(dto); ok {
+		log.Println("File exists:", dto.FileName)
+		err := d.P.Message(msg.Chat.ID, "Такой файл уже есть в базе. Старый файл будет перезаписан.")
+		if err != nil {
+			log.Println(err)
+			return err
+		}
+	}
+
 	err := d.docService.ValidateArchive(dto)
 	if err != nil {
 		log.Println(err)

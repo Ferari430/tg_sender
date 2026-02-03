@@ -8,19 +8,20 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Ferari430/tg_sender/internal/models"
+	"github.com/Ferari430/tg_sender/internal/domain/models"
 )
 
 type InMemory struct {
-	mu    sync.Mutex
-	users map[int64]*models.User
-	files map[string]*models.File
+	mu       sync.Mutex
+	users    map[int64]*models.User
+	archives map[string]*models.File
+	files    map[string]*models.File
 }
 
 func NewInMemory() *InMemory {
 	return &InMemory{
-		users: make(map[int64]*models.User),
-		files: make(map[string]*models.File),
+		users:    make(map[int64]*models.User),
+		archives: make(map[string]*models.File),
 	}
 }
 
@@ -49,10 +50,10 @@ func (im *InMemory) GetUserById(chatID int64) (*models.User, bool) {
 	return u, true
 }
 
-func (im *InMemory) FileNames(id int64) ([]string, error) {
-	result := make([]string, len(im.files))
-	for _, file := range im.files {
-		if file.OwnerID == id {
+func (im *InMemory) FileNames(ownerId int64) ([]string, error) {
+	result := make([]string, len(im.archives))
+	for _, file := range im.archives {
+		if file.OwnerID == ownerId {
 			result = append(result, file.Name)
 		}
 	}
@@ -71,18 +72,18 @@ func (im *InMemory) Exists(chatID int64) bool {
 	return exists
 }
 
-// files
-
+// Save archive
 func (im *InMemory) SaveFile(f models.File) error {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	if _, exists := im.files[f.ID]; exists {
+	// подумать надо ли проверять
+	if _, exists := im.archives[f.ID]; exists {
 		return nil
 	}
 
 	f.CreatedAt = time.Now()
-	im.files[f.ID] = &f
+	im.archives[f.ID] = &f
 	v, ok := im.users[f.OwnerID]
 	if ok {
 		v.FilesCount++
@@ -97,7 +98,7 @@ func (im *InMemory) GetFileByID(fileID string) (*models.File, bool) {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	f, exists := im.files[fileID]
+	f, exists := im.archives[fileID]
 	if !exists {
 		return nil, false
 	}
@@ -106,7 +107,7 @@ func (im *InMemory) GetFileByID(fileID string) (*models.File, bool) {
 }
 
 func (im *InMemory) GetFileByName(name string) bool {
-	for _, file := range im.files {
+	for _, file := range im.archives {
 		if file.Name == name {
 			return true
 		}
@@ -120,7 +121,7 @@ func (im *InMemory) GetFilesByUser(chatID int64) []models.File {
 	defer im.mu.Unlock()
 
 	var res []models.File
-	for _, f := range im.files {
+	for _, f := range im.archives {
 		if f.OwnerID == chatID {
 			res = append(res, *f)
 		}
@@ -132,18 +133,18 @@ func (im *InMemory) DeleteFile(fileID string) {
 	im.mu.Lock()
 	defer im.mu.Unlock()
 
-	delete(im.files, fileID)
+	delete(im.archives, fileID)
 	log.Println("Deleted file:", fileID)
 }
 
 func (im *InMemory) GetRandomFilePath() (string, error) {
-	if len(im.files) == 0 {
+	if len(im.archives) == 0 {
 		return "", fmt.Errorf("база данных пуста")
 	}
 
-	randomIndex := rand.Intn(len(im.files))
+	randomIndex := rand.Intn(len(im.archives))
 	i := 0
-	for _, file := range im.files {
+	for _, file := range im.archives {
 		if i == randomIndex {
 			return file.Path, nil
 		}

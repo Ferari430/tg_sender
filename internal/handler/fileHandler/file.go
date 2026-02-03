@@ -77,6 +77,7 @@ func (d *DocHandler) HandleDoc(msg *tgbotapi.Message) error {
 
 	m := fmt.Sprintf("скачивание %s успешно завершено. Потребовалось %v", dto.FileName, t)
 	log.Printf(m)
+
 	err = d.P.Successes(msg.Chat.ID, m)
 	if err != nil {
 		log.Println(err)

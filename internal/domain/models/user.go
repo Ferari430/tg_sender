@@ -1,9 +1,11 @@
 package models
 
-import "time"
+import (
+	"time"
+)
 
 type User struct {
-	TelegramID int64 // внутренний ID (DB)
+	ID         string
 	ChatID     int64 // Telegram chat id
 	Username   string
 	FirstName  string

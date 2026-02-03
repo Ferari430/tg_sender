@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/Ferari430/tg_sender/internal/adapters/in"
 	"github.com/Ferari430/tg_sender/internal/adapters/out"
 	telegramBot "github.com/Ferari430/tg_sender/internal/bot"
 	"github.com/Ferari430/tg_sender/internal/config"
@@ -11,6 +12,7 @@ import (
 	dochandler "github.com/Ferari430/tg_sender/internal/handler/fileHandler"
 	userhandler "github.com/Ferari430/tg_sender/internal/handler/userHandler"
 	"github.com/Ferari430/tg_sender/internal/infra/inMemory"
+	"github.com/Ferari430/tg_sender/internal/infra/kafka"
 	fileservice "github.com/Ferari430/tg_sender/internal/service/file"
 	userservice "github.com/Ferari430/tg_sender/internal/service/userService"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -38,14 +40,28 @@ func NewApp() (*App, error) {
 	uploader := out.NewTelegramUploader(tgBot)
 	t := time.NewTicker(cfg.TickerConfig.TickTime)
 
+	c, err := kafka.NewClient(cfg.KafkaConfig)
+	if err != nil {
+		return nil, err
+	}
+	prod, err := out.NewProducer(c)
+	if err != nil {
+		return nil, err
+	}
+
+	cons, err := in.NewConsumer(c, cfg.KafkaConfig.ConsumerGroupID)
+	if err != nil {
+		return nil, err
+	}
+
 	db := inMemory.NewInMemory()
 
-	ss := fileservice.NewRandomFileService(db)
+	ss := fileservice.NewRandomFileService(db, cons)
 
 	send := sender.NewSender(uploader, t, ss)
 
 	d := out.NewDownloader(*tgBot, cfg.DownloaderConfig)
-	s := fileservice.NewFileService(d, db)
+	s := fileservice.NewFileService(d, db, prod)
 	h := dochandler.NewDocHandler(s, presenter)
 	us := userservice.NewUserService(db)
 

@@ -7,7 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Ferari430/tg_sender/internal/models"
+	event "github.com/Ferari430/tg_sender/internal/domain/events"
+	"github.com/Ferari430/tg_sender/internal/domain/models"
 )
 
 type FileDownloader interface {
@@ -22,15 +23,21 @@ type Reposiroty interface {
 	GetFileByName(name string) bool
 }
 
-type FileService struct {
-	downloader FileDownloader
-	db         Reposiroty
+type Producer interface {
+	SendMessage(message event.TaskCreated) error
 }
 
-func NewFileService(downloader FileDownloader, Database Reposiroty) *FileService {
+type FileService struct {
+	downloader    FileDownloader
+	db            Reposiroty
+	kafkaProducer Producer
+}
+
+func NewFileService(downloader FileDownloader, Database Reposiroty, Prod Producer) *FileService {
 	return &FileService{
-		downloader: downloader,
-		db:         Database,
+		downloader:    downloader,
+		db:            Database,
+		kafkaProducer: Prod,
 	}
 }
 
@@ -49,6 +56,11 @@ func (fs *FileService) DownloadZip(dto *DocDTO) error {
 	file := DtoToFileModel(dto)
 
 	err = fs.db.SaveFile(file)
+	if err != nil {
+		return err
+	}
+
+	err = fs.kafkaProducer.SendMessage(event.TaskCreated{})
 	if err != nil {
 		return err
 	}

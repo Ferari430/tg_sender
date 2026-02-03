@@ -3,6 +3,8 @@ package sender
 import (
 	"log"
 	"time"
+
+	fileservice "github.com/Ferari430/tg_sender/internal/service/file"
 )
 
 type Uploader interface {
@@ -17,6 +19,7 @@ type Sender struct {
 	t *time.Ticker
 	u Uploader
 	g Getter
+	s fileservice.RandomFileService
 }
 
 func NewSender(uploader Uploader, ticker *time.Ticker, fileService Getter) *Sender {

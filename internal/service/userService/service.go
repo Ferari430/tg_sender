@@ -3,14 +3,14 @@ package userservice
 import (
 	"time"
 
-	"github.com/Ferari430/tg_sender/internal/models"
+	"github.com/Ferari430/tg_sender/internal/domain/models"
 )
 
 type Reposiroty interface {
 	SaveUser(u models.User) error
 	GetUserById(chatID int64) (*models.User, bool)
 	Exists(chatID int64) bool
-	FileNames(id int64) ([]string, error)
+	FileNames(ownerId int64) ([]string, error)
 }
 
 type UserService struct {
@@ -48,6 +48,7 @@ func (us *UserService) Files(id int64) ([]string, error) {
 
 func DtoToUserModel(d UserDTO) models.User {
 	return models.User{
+		ID:        d.ID,
 		ChatID:    d.ChatID,
 		Username:  d.Username,
 		FirstName: d.FirstName,

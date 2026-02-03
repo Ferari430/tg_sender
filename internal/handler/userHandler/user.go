@@ -5,6 +5,7 @@ import (
 
 	userservice "github.com/Ferari430/tg_sender/internal/service/userService"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/google/uuid"
 )
 
 type Presenter interface {
@@ -41,6 +42,7 @@ func (u *UserHandler) HandleMessage(msg *tgbotapi.Message) {
 		case startCommand:
 
 			dto := userservice.UserDTO{
+				ID:       uuid.New().String(),
 				ChatID:   id,
 				Username: msg.From.UserName,
 			}

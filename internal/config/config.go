@@ -13,6 +13,12 @@ type Config struct {
 	BotConfig        BotConfig
 	DownloaderConfig *DownloaderConfig
 	TickerConfig     TickerConfig
+	KafkaConfig      KafkaConfig
+}
+
+type KafkaConfig struct {
+	KafkaPort       string
+	ConsumerGroupID string
 }
 
 type TickerConfig struct {
@@ -64,6 +70,10 @@ func InitConfig() (*Config, error) {
 
 		TickerConfig: TickerConfig{
 			TickTime: dur,
+		},
+		KafkaConfig: KafkaConfig{
+			KafkaPort:       os.Getenv("KAFKA_PORT"),
+			ConsumerGroupID: os.Getenv("CONSUMER_GROUP_ID"),
 		},
 	}, nil
 }

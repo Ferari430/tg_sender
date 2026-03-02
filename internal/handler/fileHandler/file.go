@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	fileservice "github.com/Ferari430/tg_sender/internal/service/file"
+	fileservice "github.com/Ferari430/tg_sender/internal/service/file/download"
 	"github.com/Ferari430/tg_sender/pkg"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )

@@ -1,4 +1,4 @@
-package fileservice
+package download
 
 import (
 	"errors"
@@ -7,8 +7,11 @@ import (
 	"strings"
 	"time"
 
-	event "github.com/Ferari430/tg_sender/internal/domain/events"
+	"github.com/Ferari430/tg_sender/internal/domain/events"
 	"github.com/Ferari430/tg_sender/internal/domain/models"
+	"github.com/Ferari430/tg_sender/internal/infra/kafka"
+	"github.com/IBM/sarama"
+	"github.com/google/uuid"
 )
 
 type FileDownloader interface {
@@ -24,7 +27,7 @@ type Reposiroty interface {
 }
 
 type Producer interface {
-	SendMessage(message event.TaskCreated) error
+	PublishTaskCreated(msg *sarama.ProducerMessage) error
 }
 
 type FileService struct {
@@ -60,7 +63,23 @@ func (fs *FileService) DownloadZip(dto *DocDTO) error {
 		return err
 	}
 
-	err = fs.kafkaProducer.SendMessage(event.TaskCreated{})
+	ev := event.TaskCreated{
+		EventID:   uuid.New().String(),
+		EventType: "File_Created",
+		TaskID:    uuid.New().String(),
+		ChatID:    file.OwnerID,
+		FilePath:  file.Path,
+		FileName:  file.Name,
+		CreatedAt: file.CreatedAt,
+	}
+
+	msg, err := kafka.TaskCreatedToMessage("mytopic", ev)
+	if err != nil {
+		return err
+	}
+
+	err = fs.kafkaProducer.PublishTaskCreated(msg)
+
 	if err != nil {
 		return err
 	}
@@ -97,6 +116,6 @@ func DtoToFileModel(d *DocDTO) models.File {
 		Path:      d.Path,
 		Size:      d.Size,
 		Extension: d.Extension,
-		CreatedAt: time.Now(), // время создания файла
+		CreatedAt: time.Now(),
 	}
 }

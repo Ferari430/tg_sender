@@ -13,18 +13,24 @@ import (
 	userhandler "github.com/Ferari430/tg_sender/internal/handler/userHandler"
 	"github.com/Ferari430/tg_sender/internal/infra/inMemory"
 	"github.com/Ferari430/tg_sender/internal/infra/kafka"
-	fileservice "github.com/Ferari430/tg_sender/internal/service/file"
+	"github.com/Ferari430/tg_sender/internal/service/file/download"
+	"github.com/Ferari430/tg_sender/internal/service/file/saveConverted"
+	"github.com/Ferari430/tg_sender/internal/service/file/send"
 	userservice "github.com/Ferari430/tg_sender/internal/service/userService"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
+type Consumer interface {
+	Consume(ctx context.Context) error
+}
+
 type App struct {
 	Bot    *telegramBot.Bot
 	Sender *sender.Sender
+	cons   Consumer
 }
 
 func NewApp() (*App, error) {
-
 	cfg, err := config.InitConfig()
 	if err != nil {
 		return nil, err
@@ -36,32 +42,44 @@ func NewApp() (*App, error) {
 	}
 
 	presenter := out.NewTgPresenter(tgBot)
-
 	uploader := out.NewTelegramUploader(tgBot)
 	t := time.NewTicker(cfg.TickerConfig.TickTime)
 
+	// Инициализация Kafka клиента
 	c, err := kafka.NewClient(cfg.KafkaConfig)
 	if err != nil {
 		return nil, err
 	}
-	prod, err := out.NewProducer(c)
-	if err != nil {
-		return nil, err
-	}
 
-	cons, err := in.NewConsumer(c, cfg.KafkaConfig.ConsumerGroupID)
+	prod, err := out.NewProducer(c, cfg.KafkaConfig.Topic)
 	if err != nil {
 		return nil, err
 	}
 
 	db := inMemory.NewInMemory()
 
-	ss := fileservice.NewRandomFileService(db, cons)
+	// Создаем UseCase (сервис бизнес-логики)
+	scs := saveConverted.NewSaveConvertedService(db, uploader)
 
-	send := sender.NewSender(uploader, t, ss)
+	// Создаем Handler, передавая UseCase как EventHandler
+	// Теперь scs должен реализовывать domain.EventHandler интерфейс
+	consumerH := in.NewHandler(scs)
+
+	// Убираем вызов SetConsumer, так как теперь scs сам реализует EventHandler
+	// и не нуждается в отдельном консьюмере
+
+	// Создаем Consumer с Handler
+	cons, err := in.NewConsumer(c, cfg.KafkaConfig.ConsumerGroupID, consumerH)
+	if err != nil {
+		return nil, err
+	}
+
+	// Остальные компоненты остаются без изменений
+	ss := send.NewRandomFileService(db, uploader, presenter)
+	sendScheduler := sender.NewSender(t, ss)
 
 	d := out.NewDownloader(*tgBot, cfg.DownloaderConfig)
-	s := fileservice.NewFileService(d, db, prod)
+	s := download.NewFileService(d, db, prod)
 	h := dochandler.NewDocHandler(s, presenter)
 	us := userservice.NewUserService(db)
 
@@ -70,24 +88,33 @@ func NewApp() (*App, error) {
 	router := telegramBot.NewRouter(u, h)
 	bot, err := telegramBot.NewTgBot(tgBot, router)
 	if err != nil {
-
 		return nil, err
 	}
 
-	return &App{Bot: bot,
-		Sender: send,
+	return &App{
+		Bot:    bot,
+		Sender: sendScheduler,
+		cons:   cons,
 	}, nil
 }
 
-func (a *App) RunApp(_ context.Context) {
-
+func (a *App) RunApp(ctx context.Context) {
+	// Запускаем бота
 	go a.Bot.Start()
+
+	// Запускаем отправитель файлов
 	go a.Sender.Start()
-	select {}
-}
 
-func initSender() {
+	// Запускаем Kafka consumer
+	go func() {
+		if err := a.cons.Consume(ctx); err != nil {
+			// Логируем ошибку
+			// В зависимости от требований можно добавить retry логику
+		}
+	}()
 
+	// Ожидаем завершения контекста
+	<-ctx.Done()
 }
 
 func initTgBot(cfg *config.Config) (*tgbotapi.BotAPI, error) {

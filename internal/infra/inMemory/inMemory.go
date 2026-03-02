@@ -13,9 +13,9 @@ import (
 
 type InMemory struct {
 	mu       sync.Mutex
-	users    map[int64]*models.User
+	users    map[int64]*models.User //chatID:User
 	archives map[string]*models.File
-	files    map[string]*models.File
+	files    map[int64][]*models.File //chatID:PDF
 }
 
 func NewInMemory() *InMemory {
@@ -81,7 +81,6 @@ func (im *InMemory) SaveFile(f models.File) error {
 	if _, exists := im.archives[f.ID]; exists {
 		return nil
 	}
-
 	f.CreatedAt = time.Now()
 	im.archives[f.ID] = &f
 	v, ok := im.users[f.OwnerID]
@@ -152,4 +151,64 @@ func (im *InMemory) GetRandomFilePath() (string, error) {
 	}
 
 	return "", errors.New("not found")
+}
+
+func (im InMemory) ChatId() ([]int64, error) {
+	if !(len(im.users) > 0) {
+		return nil, errors.New("there are no users")
+	}
+
+	chatIds := make([]int64, len(im.users))
+	for _, user := range im.users {
+		chatIds = append(chatIds, user.ChatID)
+	}
+	return chatIds, nil
+}
+
+func (im *InMemory) GetRandomPDFPathForEachUser(chatID []int64) (map[int64]*models.File, error) {
+	result := make(map[int64]*models.File) //ChatId ->file
+
+	if len(im.files) == 0 {
+		return nil, fmt.Errorf("база данных пуста")
+	}
+
+	for _, id := range chatID {
+		userFiles, ok := im.files[id]
+		if !ok {
+			log.Println("not found", id)
+		}
+		if len(userFiles) < 1 {
+			log.Println("len arr < 1")
+		}
+
+		r := rand.Intn(len(userFiles))
+		randomFile := userFiles[r]
+		result[id] = randomFile
+	}
+
+	return result, errors.New("not found")
+}
+
+func (im *InMemory) SavePDF(f models.File) error {
+	im.mu.Lock()
+	defer im.mu.Unlock()
+
+	// подумать надо ли проверять
+	if _, exists := im.archives[f.ID]; exists {
+		return nil
+	}
+	f.CreatedAt = time.Now()
+	im.archives[f.ID] = &f
+	v, ok := im.users[f.OwnerID]
+	if ok {
+		v.FilesCount++
+		log.Println("количество файлов у пользователя", v.Username, "=", v.FilesCount)
+	}
+
+	log.Println("Saved file:", f.Name, "owner:", f.OwnerID)
+	return nil
+}
+
+func (im *InMemory) Save() error {
+	return nil
 }

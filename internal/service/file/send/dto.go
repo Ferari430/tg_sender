@@ -1,6 +1,6 @@
-package fileservice
+package send
 
-type DocDTO struct {
+type SendDTO struct {
 	OwnerID   int64  // ChatID пользователя
 	FileName  string // имя файла
 	FileID    string // Telegram FileID

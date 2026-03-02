@@ -3,49 +3,32 @@ package sender
 import (
 	"log"
 	"time"
-
-	fileservice "github.com/Ferari430/tg_sender/internal/service/file"
 )
 
-type Uploader interface {
-	UploadDocument(path string) error
-}
-
 type Getter interface {
-	GetRandomFilePath() (string, error)
+	UploadDocument() error
 }
 
 type Sender struct {
 	t *time.Ticker
-	u Uploader
 	g Getter
-	s fileservice.RandomFileService
 }
 
-func NewSender(uploader Uploader, ticker *time.Ticker, fileService Getter) *Sender {
-	return &Sender{u: uploader,
+func NewSender(ticker *time.Ticker, fileService Getter) *Sender {
+	return &Sender{
 		t: ticker,
 		g: fileService,
 	}
 }
 
 func (c *Sender) Start() {
+
 	for range c.t.C {
-		path, err := c.g.GetRandomFilePath()
+		log.Println("tick")
+		err := c.g.UploadDocument()
 		if err != nil {
-			log.Println(err)
-			continue
+			log.Println("START Sender error:", err)
+			return
 		}
-
-		log.Println("найден файл:", path)
-		log.Println("отправка файла пользователю...")
-
-		err = c.u.UploadDocument(path)
-		if err != nil {
-			log.Println(err)
-		}
-
-		log.Println("файл успешно отправлен")
 	}
-
 }

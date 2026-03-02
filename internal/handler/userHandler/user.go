@@ -11,7 +11,7 @@ import (
 type Presenter interface {
 	Successes(id int64, text string) error
 	Error(id int64, text string) error
-	Welcome(id int64, name string) error
+	Welcome(id int64) error
 	Files(id int64, fileNames []string) error
 	Help(id int64) error
 }
@@ -53,7 +53,7 @@ func (u *UserHandler) HandleMessage(msg *tgbotapi.Message) {
 				return
 			}
 
-			err = u.P.Welcome(id, dto.Username)
+			err = u.P.Welcome(id)
 			if err != nil {
 				log.Println("Error:", err)
 				return

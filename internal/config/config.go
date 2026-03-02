@@ -17,8 +17,9 @@ type Config struct {
 }
 
 type KafkaConfig struct {
-	KafkaPort       string
+	BrokersAddr     string
 	ConsumerGroupID string
+	Topic           string
 }
 
 type TickerConfig struct {
@@ -42,14 +43,12 @@ func InitConfig() (*Config, error) {
 	System := runtime.GOOS
 	switch System {
 	case "linux":
-		envPath = `/home/user/programmin/tg_sender/.env`
-		DownloadPath = `/home/user/programmin/tg_sender/data`
+		envPath = `/home/user/programmin/obsidian_Project/prog/tg_sender/.env`
+		DownloadPath = `/home/user/data`
 
 	case "windows":
-		//todo
-		envPath = `B:\programmin-20260114T065921Z-1-001\programmin\tg_sender\.env`
-		DownloadPath = `B:\programmin-20260114T065921Z-1-001\programmin\tg_sender\data`
-		//todo: set for windows
+		envPath = `B:\programmin-20260114T065921Z-1-001\programmin\obsidian_Project\prog\tg_sender\.env`
+		DownloadPath = `B:\programmin-20260114T065921Z-1-001\programmin\obsidian_Project\prog\tg_sender\data\new`
 	}
 
 	err := godotenv.Load(envPath)
@@ -71,9 +70,11 @@ func InitConfig() (*Config, error) {
 		TickerConfig: TickerConfig{
 			TickTime: dur,
 		},
+
 		KafkaConfig: KafkaConfig{
-			KafkaPort:       os.Getenv("KAFKA_PORT"),
+			BrokersAddr:     os.Getenv("KAFKA_PORT"),
 			ConsumerGroupID: os.Getenv("CONSUMER_GROUP_ID"),
+			Topic:           os.Getenv("TOPIC"),
 		},
 	}, nil
 }

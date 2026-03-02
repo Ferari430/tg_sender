@@ -17,40 +17,28 @@ func NewTelegramUploader(b *tgbotapi.BotAPI) *TelegramUploader {
 	return &TelegramUploader{bot: b}
 }
 
-// отправка архива пользователю
-func (u *TelegramUploader) UploadDocument(path string) error {
-
-	//path := `B:\data\curl.txt`
-
+func (u *TelegramUploader) UploadDocument(chatID int64, path string) error {
 	f, err := os.Open(path)
 	if err != nil {
 		return err
 	}
-
-	defer func() error {
+	defer func() {
 		if err := f.Close(); err != nil {
 			log.Printf("error closing file: %v", err)
-			return err
 		}
-		return nil
 	}()
 
 	var buf bytes.Buffer
-
-	_, err = io.Copy(&buf, f)
-	if err != nil {
+	if _, err = io.Copy(&buf, f); err != nil {
 		return err
 	}
 
-	log.Println(buf.Len())
+	file := tgbotapi.FileBytes{
+		Name:  "file.txt",
+		Bytes: buf.Bytes(),
+	}
 
-	file := tgbotapi.FileBytes{"name.txt", buf.Bytes()}
-	doc := tgbotapi.NewDocument(449237834, file)
-
+	doc := tgbotapi.NewDocument(chatID, file)
 	_, err = u.bot.Send(doc)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }

@@ -34,9 +34,9 @@ func (d *Downloader) DownloadZip(fileName, fileID string) (string, error) {
 	}
 
 	res, err := http.Get(url)
-	defer func() error {
+	defer func() {
 		err := res.Body.Close()
-		return err
+		log.Println(err)
 	}()
 
 	if err != nil {
@@ -48,7 +48,11 @@ func (d *Downloader) DownloadZip(fileName, fileID string) (string, error) {
 		return "", err
 	}
 
-	defer out.Close()
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Println(err)
+		}
+	}()
 
 	_, err = io.Copy(out, res.Body)
 	if err != nil {

@@ -34,7 +34,3 @@ func (c *consumer) Consume(ctx context.Context) error {
 		}
 	}
 }
-
-func (c *consumer) validateEvent() error {
-	return nil
-}

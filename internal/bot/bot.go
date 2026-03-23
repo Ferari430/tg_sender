@@ -42,7 +42,6 @@ func (b *Bot) Start() {
 	for update := range updates {
 		b.HandleMessage(update)
 	}
-
 }
 
 func (b *Bot) HandleMessage(u tgbotapi.Update) {

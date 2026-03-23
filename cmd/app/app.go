@@ -2,6 +2,11 @@ package app
 
 import (
 	"context"
+	"fmt"
+	"log"
+	"net"
+	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/Ferari430/tg_sender/internal/adapters/in"
@@ -117,6 +122,43 @@ func (a *App) RunApp(ctx context.Context) {
 	<-ctx.Done()
 }
 
+// func initTgBot(cfg *config.Config) (*tgbotapi.BotAPI, error) {
+
+// 	commands := []tgbotapi.BotCommand{
+// 		{Command: "start", Description: "Запустить бота"},
+// 		{Command: "help", Description: "Помощь"},
+// 		{Command: "files", Description: "Показать мои файлы"},
+// 	}
+
+// 	var tgBot *tgbotapi.BotAPI
+// 	c := configurateClient()
+
+// 	if !cfg.BotConfig.WithClient {
+// 		bot, err := tgbotapi.NewBotAPI(cfg.BotConfig.Token)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		tgBot = bot
+
+// 	} else {
+// 		tgEndpoint := tgbotapi.APIEndpoint
+// 		botWithClient, err := tgbotapi.NewBotAPIWithClient(cfg.BotConfig.Token, tgEndpoint, c)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		tgBot = botWithClient
+// 	}
+
+// 	command := tgbotapi.NewSetMyCommands(commands...)
+
+// 	_, err := tgBot.Request(command)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return tgBot, nil
+// }
+
 func initTgBot(cfg *config.Config) (*tgbotapi.BotAPI, error) {
 	commands := []tgbotapi.BotCommand{
 		{Command: "start", Description: "Запустить бота"},
@@ -124,17 +166,82 @@ func initTgBot(cfg *config.Config) (*tgbotapi.BotAPI, error) {
 		{Command: "files", Description: "Показать мои файлы"},
 	}
 
-	tgBot, err := tgbotapi.NewBotAPI(cfg.BotConfig.Token)
+	// Проверяем, нужно ли использовать прокси
+	var bot *tgbotapi.BotAPI
+	var err error
+
+	if cfg.BotConfig.UseProxy && cfg.BotConfig.ProxyURL != "" {
+		log.Println(cfg.BotConfig.UseProxy, cfg.BotConfig.ProxyURL)
+		// Используем кастомный клиент с прокси
+		proxyURL, _ := url.Parse(cfg.BotConfig.ProxyURL)
+		client := &http.Client{
+			Transport: &http.Transport{
+				Proxy: http.ProxyURL(proxyURL),
+				DialContext: (&net.Dialer{
+					Timeout:   30 * time.Second,
+					KeepAlive: 30 * time.Second,
+				}).DialContext,
+				TLSHandshakeTimeout: 30 * time.Second,
+			},
+			Timeout: 60 * time.Second,
+		}
+
+		bot, err = tgbotapi.NewBotAPIWithClient(cfg.BotConfig.Token, tgbotapi.APIEndpoint, client)
+	} else if cfg.BotConfig.WithClient {
+		// Используем обычный кастомный клиент (без прокси)
+		client := configurateClient()
+
+		bot, err = tgbotapi.NewBotAPIWithClient(cfg.BotConfig.Token, tgbotapi.APIEndpoint, client)
+	} else {
+		// Используем стандартный клиент
+		bot, err = tgbotapi.NewBotAPI(cfg.BotConfig.Token)
+	}
+
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create bot: %w", err)
+	}
+
+	// Проверяем соединение
+	_, err = bot.GetMe()
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to Telegram API: %w", err)
 	}
 
 	command := tgbotapi.NewSetMyCommands(commands...)
-
-	_, err = tgBot.Request(command)
+	_, err = bot.Request(command)
 	if err != nil {
 		return nil, err
 	}
 
-	return tgBot, nil
+	return bot, nil
+}
+
+func configurateClient() *http.Client {
+	// Настройка прокси (замените на свои данные)
+	proxyURL, err := url.Parse("socks5://127.0.0.1:1080") // или http://proxy.example.com:8080
+	if err != nil {
+		// Если прокси не настроен, используем прямой доступ
+		proxyURL = nil
+	}
+
+	transport := &http.Transport{
+		DialContext: (&net.Dialer{
+			Timeout:   30 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}).DialContext,
+		TLSHandshakeTimeout:   30 * time.Second,
+		ResponseHeaderTimeout: 30 * time.Second,
+		ExpectContinueTimeout: 1 * time.Second,
+		MaxIdleConns:          100,
+		MaxIdleConnsPerHost:   10,
+		IdleConnTimeout:       90 * time.Second,
+		Proxy:                 http.ProxyURL(proxyURL), // Добавляем прокси
+	}
+
+	client := &http.Client{
+		Timeout:   60 * time.Second,
+		Transport: transport,
+	}
+
+	return client
 }

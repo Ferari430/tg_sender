@@ -1,6 +1,8 @@
 package config
 
 import (
+	"flag"
+	"log"
 	"os"
 	"runtime"
 	"strconv"
@@ -27,7 +29,10 @@ type TickerConfig struct {
 }
 
 type BotConfig struct {
-	Token string
+	Token      string
+	WithClient bool
+	UseProxy   bool   // Добавьте
+	ProxyURL   string // Добавьте, например "socks5://127.0.0.1:1080"
 }
 
 type DownloaderConfig struct {
@@ -35,9 +40,11 @@ type DownloaderConfig struct {
 }
 
 func InitConfig() (*Config, error) {
+	log.Println("initialaize config...")
 	var (
 		envPath      string
 		DownloadPath string
+		withC        bool
 	)
 
 	System := runtime.GOOS
@@ -65,7 +72,20 @@ func InitConfig() (*Config, error) {
 
 	dur := time.Duration(a) * time.Second
 
-	return &Config{BotConfig: BotConfig{Token: os.Getenv("TOKEN")}, DownloaderConfig: &DownloaderConfig{RootDir: DownloadPath},
+	flag.BoolVar(&withC, "withClient", true, "tgBot with custom client")
+	flag.Parse()
+
+	wc, ok := os.LookupEnv("WITH_CLIENT")
+	if ok {
+		boolVal, _ := strconv.ParseBool(wc)
+		withC = boolVal
+	}
+
+	return &Config{BotConfig: BotConfig{Token: os.Getenv("TOKEN"),
+		WithClient: withC,
+		UseProxy:   true,
+		ProxyURL:   "socks5://127.0.0.1:1080",
+	}, DownloaderConfig: &DownloaderConfig{RootDir: DownloadPath},
 
 		TickerConfig: TickerConfig{
 			TickTime: dur,

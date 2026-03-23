@@ -50,7 +50,7 @@ func InitConfig() (*Config, error) {
 	System := runtime.GOOS
 	switch System {
 	case "linux":
-		envPath = `/server/tg_sender/.env`
+		envPath = `/root/server/tg_sender/.env`
 		DownloadPath = `/home/user/data`
 
 	case "windows":

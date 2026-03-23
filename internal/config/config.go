@@ -33,6 +33,7 @@ type BotConfig struct {
 	WithClient bool
 	UseProxy   bool   // Добавьте
 	ProxyURL   string // Добавьте, например "socks5://127.0.0.1:1080"
+	vps        bool
 }
 
 type DownloaderConfig struct {
@@ -45,7 +46,16 @@ func InitConfig() (*Config, error) {
 		envPath      string
 		DownloadPath string
 		withC        bool
+		vps          bool
 	)
+
+	flag.BoolVar(&vps, "vps", false, "is it vps?")
+	flag.Parse()
+
+	if vps {
+		log.Println("starting on vps")
+		DownloadPath = "/root/server/data"
+	}
 
 	System := runtime.GOOS
 	switch System {
@@ -83,6 +93,7 @@ func InitConfig() (*Config, error) {
 
 	return &Config{BotConfig: BotConfig{Token: os.Getenv("TOKEN"),
 		WithClient: withC,
+		vps:        vps,
 		UseProxy:   true,
 		ProxyURL:   "socks5://127.0.0.1:1080",
 	}, DownloaderConfig: &DownloaderConfig{RootDir: DownloadPath},

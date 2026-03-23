@@ -2,6 +2,7 @@ package out
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -34,15 +35,19 @@ func (d *Downloader) DownloadZip(fileName, fileID string) (string, error) {
 	}
 
 	res, err := http.Get(url)
-	defer func() {
-		err := res.Body.Close()
-		log.Println(err)
-	}()
+	defer res.Body.Close()
+
+	if res.StatusCode != http.StatusOK {
+
+		return "", fmt.Errorf("bad status %s", res.Status)
+	}
 
 	if err != nil {
 		return "", err
 	}
+
 	path := filepath.Join(d.cfg.RootDir, fileName)
+	log.Println("filepath for downloading:", path)
 	out, err := os.Create(path)
 	if err != nil {
 		return "", err

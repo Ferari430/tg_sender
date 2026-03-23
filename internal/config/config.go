@@ -50,7 +50,7 @@ func InitConfig() (*Config, error) {
 	System := runtime.GOOS
 	switch System {
 	case "linux":
-		envPath = `/home/user/programmin/obsidian_Project/prog/tg_sender/.env`
+		envPath = `/server/tg_sender/.env`
 		DownloadPath = `/home/user/data`
 
 	case "windows":

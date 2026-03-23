@@ -72,7 +72,7 @@ func InitConfig() (*Config, error) {
 
 	dur := time.Duration(a) * time.Second
 
-	flag.BoolVar(&withC, "withClient", true, "tgBot with custom client")
+	flag.BoolVar(&withC, "with_client", true, "tgBot with custom client")
 	flag.Parse()
 
 	wc, ok := os.LookupEnv("WITH_CLIENT")
